@@ -13,11 +13,12 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 public class AlertRabbit {
 
-    private static Properties config = new Properties();
+    private static Properties config = System.getProperties();
 
     public static void init() {
-        ClassLoader loader = config.getClass().getClassLoader();
-        try (InputStream resource = loader.getResourceAsStream("rabbit.properties")) {
+        try (InputStream resource = AlertRabbit.class
+                .getClassLoader()
+                .getResourceAsStream("rabbit.properties")) {
             config.load(resource);
         } catch (IOException e) {
             throw new RuntimeException(e);
