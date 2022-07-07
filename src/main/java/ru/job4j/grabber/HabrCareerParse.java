@@ -12,13 +12,12 @@ import java.time.format.DateTimeFormatter;
 
 public class HabrCareerParse {
 
+    public static final DateTimeFormatter OUTPUT_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final String SOURCE_LINK = "https://career.habr.com";
-
     private static final String PAGE_LINK = String.format("%s/vacancies/java_developer", SOURCE_LINK);
 
     public static void main(String[] args) throws IOException {
         HabrCareerDateTimeParser dateTimeParser = new HabrCareerDateTimeParser();
-        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
         for (int i = 1; i <= 5; i++) {
             Connection connection = Jsoup.connect(String.format("%s%s%d", PAGE_LINK, "?page=", i));
             Document document = connection.get();
@@ -30,7 +29,7 @@ public class HabrCareerParse {
                 String dateAttr = dateElement.attr("datetime");
                 String vacancyName = titleElement.text();
                 String link = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
-                String date = dateTimeParser.parse(dateAttr).format(outputFormatter);
+                String date = dateTimeParser.parse(dateAttr).format(OUTPUT_FORMATTER);
                 System.out.printf("%s %s %s%n", vacancyName, link, date);
             });
         }
