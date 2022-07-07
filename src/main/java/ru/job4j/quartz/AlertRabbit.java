@@ -13,20 +13,20 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 public class AlertRabbit {
 
-    private static Properties config = System.getProperties();
-
-    public static void init() {
+    public static Properties init(String path) {
+        Properties properties = System.getProperties();
         try (InputStream resource = AlertRabbit.class
                 .getClassLoader()
-                .getResourceAsStream("rabbit.properties")) {
-            config.load(resource);
+                .getResourceAsStream(path)) {
+            properties.load(resource);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
+        return properties;
     }
 
     public static void main(String[] args) {
-        init();
+        Properties config = init("rabbit.properties");
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
