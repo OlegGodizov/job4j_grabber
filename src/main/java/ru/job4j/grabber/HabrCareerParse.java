@@ -10,7 +10,6 @@ import ru.job4j.grabber.utils.DateTimeParser;
 import ru.job4j.grabber.utils.HabrCareerDateTimeParser;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,11 +38,16 @@ public class HabrCareerParse implements Parse {
     }
 
     @Override
-    public List<Post> list(String link) throws IOException {
+    public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
             Connection connection = Jsoup.connect(String.format("%s%s%d", link, "?page=", i));
-            Document document = connection.get();
+            Document document;
+            try {
+                document = connection.get();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             Elements rows = document.select(".vacancy-card__inner");
             rows.forEach(row -> {
                 Element titleElement = row.select(".vacancy-card__title").first();
@@ -62,7 +66,7 @@ public class HabrCareerParse implements Parse {
         return posts;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         HabrCareerDateTimeParser dateParser = new HabrCareerDateTimeParser();
         HabrCareerParse parser = new HabrCareerParse(dateParser);
         parser.list(PAGE_LINK).forEach(System.out::println);
