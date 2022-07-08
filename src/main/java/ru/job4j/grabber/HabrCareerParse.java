@@ -17,8 +17,8 @@ import java.util.List;
 public class HabrCareerParse implements Parse {
 
     private static final String SOURCE_LINK = "https://career.habr.com";
-    private static final String PAGE_LINK = String.format("%s/vacancies/java_developer", SOURCE_LINK);
-    public static final DateTimeFormatter OUTPUT_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final String PAGE_LINK = String.format("%s/vacancies/java_developer?page=", SOURCE_LINK);
+    public static final int PAGES_COUNT = 5;
     private final DateTimeParser dateTimeParser;
 
     public HabrCareerParse(DateTimeParser dateTimeParser) {
@@ -32,36 +32,35 @@ public class HabrCareerParse implements Parse {
             Document document = connection.get();
             description = document.selectFirst(".collapsible-description").text();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Failed to load post description");
         }
         return description;
+    }
+
+    private Post parsePost(Element element) {
+        Element titleElement = element.select(".vacancy-card__title").first();
+        Element linkElement = titleElement.child(0);
+        Element dateElement = element.select(".vacancy-card__date").first().child(0);
+        String dateAttr = dateElement.attr("datetime");
+        String vacancyName = titleElement.text();
+        String postLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
+        String description = this.retrieveDescription(postLink);
+        return new Post(vacancyName, postLink, description, dateTimeParser.parse(dateAttr));
     }
 
     @Override
     public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();
-        for (int i = 1; i <= 5; i++) {
-            Connection connection = Jsoup.connect(String.format("%s%s%d", link, "?page=", i));
+        for (int i = 1; i <= PAGES_COUNT; i++) {
+            Connection connection = Jsoup.connect(String.format("%s%d", link, i));
             Document document;
             try {
                 document = connection.get();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new IllegalArgumentException("Failed to load site page");
             }
             Elements rows = document.select(".vacancy-card__inner");
-            rows.forEach(row -> {
-                Element titleElement = row.select(".vacancy-card__title").first();
-                Element linkElement = titleElement.child(0);
-                Element dateElement = row.select(".vacancy-card__date").first().child(0);
-                String dateAttr = dateElement.attr("datetime");
-                String vacancyName = titleElement.text();
-                String postLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
-                String date = dateTimeParser.parse(dateAttr).format(OUTPUT_FORMATTER);
-                String description = this.retrieveDescription(postLink);
-                Post post = new Post(vacancyName, postLink, description, dateTimeParser.parse(dateAttr));
-                posts.add(post);
-                System.out.printf("%s %s %s%n%s%n", vacancyName, postLink, date, description);
-            });
+            rows.forEach(row -> posts.add(parsePost(row)));
         }
         return posts;
     }
