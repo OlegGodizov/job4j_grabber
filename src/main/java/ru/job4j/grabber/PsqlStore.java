@@ -79,8 +79,9 @@ public class PsqlStore implements Store, AutoCloseable {
                      cnn.prepareStatement("SELECT * FROM posts WHERE id=?")) {
             statement.setInt(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
-                resultSet.next();
-                post = getPostByResultSet(resultSet);
+                if (resultSet.next()) {
+                    post = getPostByResultSet(resultSet);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
