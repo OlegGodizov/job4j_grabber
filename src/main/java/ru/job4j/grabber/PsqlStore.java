@@ -28,37 +28,33 @@ public class PsqlStore implements Store, AutoCloseable {
         }
     }
 
-    private Post getPostByResultSet(ResultSet resultSet) {
-        try {
-            return new Post(
-                    resultSet.getInt("id"),
-                    resultSet.getString("name"),
-                    resultSet.getString("text"),
-                    resultSet.getString("link"),
-                    resultSet.getTimestamp("created").toLocalDateTime()
-            );
-        } catch (SQLException e) {
-            throw new IllegalArgumentException("Failed to get post by ResultSet. Probably ResultSet is null");
-        }
+    private Post getPostByResultSet(ResultSet resultSet) throws SQLException {
+        return new Post(
+                resultSet.getInt("id"),
+                resultSet.getString("name"),
+                resultSet.getString("text"),
+                resultSet.getString("link"),
+                resultSet.getTimestamp("created").toLocalDateTime()
+        );
     }
 
     @Override
     public void save(Post post) {
         try (PreparedStatement statement =
                 cnn.prepareStatement("INSERT INTO posts(name, text, link, created)"
-                        + " values(?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
-            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    post.setId(generatedKeys.getInt(1));
-                }
-            }
+                        + " values(?,?,?,?) ON CONFLICT (link) DO NOTHING", Statement.RETURN_GENERATED_KEYS)) {
             statement.setString(1, post.getTitle());
             statement.setString(2, post.getDescription());
             statement.setString(3, post.getLink());
             statement.setTimestamp(4, Timestamp.valueOf(post.getCreated()));
             statement.execute();
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    post.setId(generatedKeys.getInt(1));
+                }
+            }
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to save post");
+            e.printStackTrace();
         }
     }
 
@@ -71,23 +67,25 @@ public class PsqlStore implements Store, AutoCloseable {
                 posts.add(getPostByResultSet(resultSet));
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
         return posts;
     }
 
     @Override
     public Post findById(int id) {
+        Post post = null;
         try (PreparedStatement statement =
                      cnn.prepareStatement("SELECT * FROM posts WHERE id=?")) {
             statement.setInt(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
-                return getPostByResultSet(resultSet);
+                post = getPostByResultSet(resultSet);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
+        return post;
     }
 
     @Override
@@ -99,8 +97,9 @@ public class PsqlStore implements Store, AutoCloseable {
 
     public static void main(String[] args) throws IOException {
         Properties properties = new Properties();
-        InputStream resource = ClassLoader.getSystemResourceAsStream("rabbit.properties");
-        properties.load(resource);
+        try (InputStream resource = ClassLoader.getSystemResourceAsStream("rabbit.properties")) {
+            properties.load(resource);
+        }
         try (PsqlStore store = new PsqlStore(properties)) {
             DateTimeParser dateParser = new HabrCareerDateTimeParser();
             HabrCareerParse parser = new HabrCareerParse(dateParser);
