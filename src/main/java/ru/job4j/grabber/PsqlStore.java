@@ -98,7 +98,7 @@ public class PsqlStore implements Store, AutoCloseable {
 
     public static void main(String[] args) throws IOException {
         Properties properties = new Properties();
-        try (InputStream resource = ClassLoader.getSystemResourceAsStream("rabbit.properties")) {
+        try (InputStream resource = ClassLoader.getSystemResourceAsStream("app.properties")) {
             properties.load(resource);
         }
         try (PsqlStore store = new PsqlStore(properties)) {
