@@ -1,10 +1,10 @@
+-- В одном запросе:
 -- получить имена всех person, которые не состоят в компании с id = 5;
-SELECT * FROM person WHERE company_id <> 5;
-
 -- получить название компании для каждого человека.
-SELECT p.name, c.name FROM person p
+SELECT p.id, p.name, c.name FROM person p
 JOIN company c
-ON c.id=p.company_id;
+ON c.id=p.company_id
+WHERE company_id <> 5;
 
 -- Получить название компании с максимальным количеством человек + количество человек в этой компании
 SELECT c.name, count(*) cnt1
